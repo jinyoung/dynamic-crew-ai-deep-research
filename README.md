@@ -72,6 +72,134 @@ The dynamic report generation follows this flow:
 3. Generate Report Sections (in parallel) → (section contents)
 4. Compile Final Report → (complete report)
 
+
+## 한국어 설명
+```
+
+
+Ran tool
+
+Read file: /Users/uengine/crew-ai/parallel/src/parallel/flows/dynamic_report_flow.py
+
+Ran tool
+
+Read file: /Users/uengine/crew-ai/parallel/src/parallel/crews/planning_crew/PlanningCrew.py
+
+Ran tool
+
+Read file: /Users/uengine/crew-ai/parallel/src/parallel/crews/report_crew/ReportCrew.py
+동적으로 목차(TOC)를 생성하고 각 섹션을 병렬로 처리하는 과정을 상세히 설명해드리겠습니다.
+
+## 동적 목차(TOC) 생성 및 병렬 처리 과정
+
+### 1. 전체 흐름 구조
+
+이 시스템은 다음과 같은 구조로 작동합니다:
+
+1. **DynamicReportFlow** (전체 흐름 관리)
+2. **PlanningCrew** (목차 계획 및 구성)
+3. **ReportCrew** (섹션별 내용 생성)
+
+### 2. 동적 목차(TOC) 생성 프로세스
+
+`DynamicReportFlow` 클래스의 `plan_report` 메소드에서 다음과 같이 동적 목차 생성이 이루어집니다:
+
+1. **주제 분석 및 계획 수립**:
+   - 사용자가 지정한 주제(예: "Artificial Intelligence in Healthcare")를 입력받음
+   - `PlanningCrew`를 초기화하고 `kickoff_async` 메소드를 호출하여 계획 프로세스 시작
+
+2. **PlanningCrew의 작동 방식**:
+   - `topic_analyzer`: 입력된 주제를 분석하는 에이전트
+   - `outline_builder`: 분석 결과를 바탕으로 목차(TOC)를 구성하는 에이전트
+   - `agent_configurator`: 각 섹션에 필요한 에이전트를 구성하는 에이전트
+   - `task_configurator`: 각 섹션에 필요한 작업을 구성하는 에이전트
+
+3. **목차 구조 생성**:
+   - `PlanningCrew`가 다음과 같은 형태의 목차 데이터를 생성:
+   ```python
+   toc = [
+       {"title": "Introduction", "id": "intro"},
+       {"title": "Current State of Artificial Intelligence in Healthcare", "id": "current_state"},
+       {"title": "Key Technologies", "id": "technologies"},
+       ...
+   ]
+   ```
+
+### 3. 병렬 처리 구현
+
+`DynamicReportFlow` 클래스의 `generate_report_sections` 메소드에서 병렬 처리가 이뤄집니다:
+
+1. **섹션별 태스크 생성**:
+   ```python
+   section_tasks = []
+   for section in self.state.toc:
+       section_id = section["id"]
+       section_title = section["title"]
+       
+       section_task = self.create_section_task(section_id, section_title)
+       section_tasks.append(section_task)
+   ```
+
+2. **asyncio.gather를 사용한 병렬 실행**:
+   ```python
+   section_results = await asyncio.gather(*section_tasks)
+   ```
+   - `asyncio.gather`는 여러 비동기 작업을 동시에 실행하고 모든 결과가 완료될 때까지 기다림
+   - 이를 통해 각 섹션이 동시에(병렬로) 처리됨
+
+3. **섹션별 처리 로직**:
+   - 각 섹션마다 `create_section_task` 메소드가 호출됨
+   - 이 메소드는 `ReportCrew`를 초기화하고 특정 섹션 ID와 제목을 전달
+   - `ReportCrew`는 각 섹션마다 독립적으로 실행되는 연구자(researcher)와 작성자(writer) 에이전트를 생성
+
+### 4. ReportCrew의 섹션별 처리
+
+`ReportCrew` 클래스는 각 섹션을 처리하기 위한 전문화된 에이전트를 생성합니다:
+
+1. **섹션별 맞춤 에이전트**:
+   - `section_researcher`: 특정 섹션에 필요한 정보를 수집하는 에이전트
+   - `section_writer`: 수집된 정보를 바탕으로 섹션 내용을 작성하는 에이전트
+   - 각 에이전트는 섹션 제목과 주제에 맞게 사용자 정의됨
+
+2. **섹션별 처리 흐름**:
+   - 연구 작업 (`research_section`): 섹션에 필요한 정보 수집
+   - 작성 작업 (`write_section`): 수집된 정보를 바탕으로 섹션 내용 작성
+   - 이 작업들은 순차적으로 실행되지만, 여러 섹션의 처리는 동시에 진행됨
+
+### 5. 최종 보고서 생성
+
+모든 섹션이 병렬로 처리된 후, `compile_final_report` 메소드는 각 섹션의 결과를 하나의 완성된 보고서로 조합합니다:
+
+```python
+# 목차 추가
+report = f"# REPORT: {self.state.topic}\n\n"
+report += f"## Table of Contents\n\n"
+for i, section in enumerate(self.state.toc):
+    report += f"{i+1}. {section['title']}\n"
+
+# 각 섹션 내용 추가
+for section in self.state.toc:
+    section_id = section["id"]
+    section_title = section["title"]
+    section_content = self.state.section_reports.get(section_id, "...")
+    
+    report += f"## {section_title}\n\n"
+    report += f"{section_content}\n\n"
+```
+
+## 정리
+
+이 시스템이 동적으로 목차를 생성하고 병렬 처리하는 방식은 다음과 같습니다:
+
+1. **동적 목차 생성**: AI 에이전트(PlanningCrew)가 주제를 분석하고 적절한 목차를 자동으로 구성
+2. **병렬 처리 메커니즘**: `asyncio.gather`를 사용하여 각 섹션의 처리 작업을 동시에 실행
+3. **섹션별 맞춤 처리**: 각 섹션마다 전문화된 연구자와 작성자 에이전트가 할당됨
+4. **최종 통합**: 병렬로 생성된 모든 섹션을 순서대로 조합하여 최종 보고서 완성
+
+이러한 구조는 효율적인 병렬 처리를 통해 여러 섹션을 동시에 생성하면서도, 각 섹션이 전체 보고서의 맥락에 맞게 구성되도록 설계되었습니다.
+
+```
+
 ## Example
 
 Given the topic "Artificial Intelligence in Healthcare", the system will:
