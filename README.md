@@ -73,23 +73,6 @@ The dynamic report generation follows this flow:
 4. Compile Final Report → (complete report)
 
 
-## 한국어 설명
-```
-
-
-Ran tool
-
-Read file: /Users/uengine/crew-ai/parallel/src/parallel/flows/dynamic_report_flow.py
-
-Ran tool
-
-Read file: /Users/uengine/crew-ai/parallel/src/parallel/crews/planning_crew/PlanningCrew.py
-
-Ran tool
-
-Read file: /Users/uengine/crew-ai/parallel/src/parallel/crews/report_crew/ReportCrew.py
-동적으로 목차(TOC)를 생성하고 각 섹션을 병렬로 처리하는 과정을 상세히 설명해드리겠습니다.
-
 ## 동적 목차(TOC) 생성 및 병렬 처리 과정
 
 ### 1. 전체 흐름 구조
@@ -198,7 +181,7 @@ for section in self.state.toc:
 
 이러한 구조는 효율적인 병렬 처리를 통해 여러 섹션을 동시에 생성하면서도, 각 섹션이 전체 보고서의 맥락에 맞게 구성되도록 설계되었습니다.
 
-```
+
 
 ## Example
 
